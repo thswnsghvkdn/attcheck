@@ -1,0 +1,23 @@
+{
+  "name": "attcheck",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "heroku-postbuild": "cd client && npm install && npm install --only=dev --no-shrinkwrap && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thswnsghvkdn/attcheck.git"
+  },
+  "author": "xxeun",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/thswnsghvkdn/attcheck/issues"
+  },
+  "homepage": "https://github.com/thswnsghvkdn/attcheck#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
