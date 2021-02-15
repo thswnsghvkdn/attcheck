@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const path = require('path');
 const app = express();
-const helmet = require('helmet') // creates headers that protect from attacks (security)
 const cors = require('cors')  // allows/disallows cross-site communication
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); 
@@ -22,7 +21,6 @@ const corsOptions = {
     }
   }
 }
-app.use(helmet())
 // --> Add this
 app.use(cors(corsOptions))
 
