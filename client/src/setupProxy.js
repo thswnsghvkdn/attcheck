@@ -13,7 +13,7 @@ app.use(
 app.use(
     '/api',
     createProxyMiddleware({
-        target: 'https://atttch.herokuapp.com/',
+        target: 'https://atttcheck.herokuapp.com/',
         secure : false ,
         changeOrigin: true,
         })
