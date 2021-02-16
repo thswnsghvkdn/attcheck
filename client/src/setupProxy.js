@@ -6,6 +6,15 @@ app.use(
     '/api',
     createProxyMiddleware({
         target: 'http://localhost:8080',
+        secure : false,
+        changeOrigin: true,
+        })
+    );
+app.use(
+    '/api',
+    createProxyMiddleware({
+        target: 'https://attendancexcel.herokuapp.com',
+        secure : false ,
         changeOrigin: true,
         })
     );
