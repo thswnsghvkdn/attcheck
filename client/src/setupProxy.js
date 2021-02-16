@@ -13,7 +13,7 @@ app.use(
 app.use(
     '/api',
     createProxyMiddleware({
-        target: 'https://attendancexcel.herokuapp.com',
+        target: 'https://atttch.herokuapp.com/',
         secure : false ,
         changeOrigin: true,
         })
