@@ -3,12 +3,19 @@ const bodyParser = require('body-parser')
 const path = require('path');
 const app = express();
 const cors = require('cors')  // allows/disallows cross-site communication
+const mysql = require('mysql2')
+const month = new Date().getMonth() 
+const week = parseInt(new Date().getDate() / 7)
+const { cleardb }  = require('./config/key')
+
+
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); 
 
 // --> Add this
 // ** MIDDLEWARE ** //
-const whitelist = ['http://localhost:3000', 'http://localhost:8080/', 'https://atttcheck.herokuapp.com']
+const whitelist = ['http://localhost:3000', 'http://localhost:8080', 'https://atttcheck.herokuapp.com']
 const corsOptions = {
   origin: function (origin, callback) {
     console.log("** Origin of request " + origin)
@@ -24,14 +31,7 @@ const corsOptions = {
 // --> Add this
 app.use(cors(corsOptions))
 
-app.get('/api/', (req, res) => {
-  res.send({ people: 'You want to see people I assume' });
-});
-app.post('/api/', (req, res) => {
-  res.send(
-    `Person created: ${req.body.person.name}`,
-  );
-});
+
 
 // --> Add this
 if (process.env.NODE_ENV === 'production') {
@@ -42,6 +42,22 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
   });
 }
+
+var conn = mysql.createConnection({
+    host : cleardb.host ,
+    user : cleardb.user ,
+    password : cleardb.password ,
+    database : cleardb.schema
+});
+
+conn.connect( (err) =>{
+    if(err){
+        console.log(err)
+    }
+    else {
+        console.log('DB connected')
+    }
+})
 
 const PORT = process.env.PORT || 8080
 app.listen(PORT, (req, res) => {
