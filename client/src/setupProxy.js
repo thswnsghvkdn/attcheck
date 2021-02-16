@@ -1,3 +1,4 @@
+/*
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 
@@ -19,3 +20,4 @@ app.use(
         })
     );
 };
+*/
