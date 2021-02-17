@@ -40,7 +40,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client/build')));
 // Handle React routing, return all requests to React app
   app.get('*', function(req, res) {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    res.sendFile(path.resolve(__dirname, 'client/build', 'index.html'));
   });
 }
 
@@ -69,11 +69,11 @@ function make_obj(m , w, res)
             var t = []
             for(var j = 0 ; j < result.length ; j++) // json 객체에서 출석정보만을 가져온다.
                 t.push(result[j][_date])
-            obj.att.push(t) // 출석정보 배열을 객체에 att 에 push 한다.
-            obj.date.push(_date) // 해당 날짜를 push한다.
+                studata.att.push(t) // 출석정보 배열을 객체에 att 에 push 한다.
+                studata.date.push(_date) // 해당 날짜를 push한다.
 
             if(m == 1 && w == 0) 
-                res.send(`${studata}`) // 1월 0주차에 경우 출력한다.
+                res.send(studata) // 1월 0주차에 경우 출력한다.
             
         }
     })
