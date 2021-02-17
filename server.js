@@ -7,7 +7,7 @@ const mysql = require('mysql2')
 const month = new Date().getMonth() 
 const week = parseInt(new Date().getDate() / 7)
 const { cleardb }  = require('./config/key')
-var obj = {att : [] , date : []}
+var studata = {att : [] , date : []}
 
 
 
@@ -72,7 +72,9 @@ function make_obj(m , w, res)
             obj.att.push(t) // 출석정보 배열을 객체에 att 에 push 한다.
             obj.date.push(_date) // 해당 날짜를 push한다.
 
-            if(m == 1 && w == 0) res.send(obj) // 1월 0주차에 경우 출력한다.
+            if(m == 1 && w == 0) 
+                res.send(`${studata}`) // 1월 0주차에 경우 출력한다.
+            
         }
     })
 }
