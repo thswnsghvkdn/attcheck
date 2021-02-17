@@ -2,12 +2,9 @@ import React from 'react';
 import axios from 'axios';
 import Excel from 'exceljs'
 
-function savefile( wb) // 서버에서 넘어온 객체를 가지고 엑셀을 수정 
+function savefile( wb , stu) // 서버에서 넘어온 객체를 가지고 엑셀을 수정 
 {
-  var res ={ att:
-    [ [ 1, null, 1, 1 ],
-    [ null, 1, null, 1 ]],
-   date: [ '2-1' , '2-0'] };
+  var res = stu;
    debugger;
     for(var i = 0 ; i < res.att.length ; i++)
     {
@@ -35,7 +32,7 @@ class App extends React.Component {
  state = {file : null}
  fileHandler = (e) => {
    const files = e.target.files[0];
-     this.setState({
+  this.setState({
        files: files
      })
      const wb = new Excel.Workbook();
@@ -45,8 +42,10 @@ class App extends React.Component {
      reader.onload = () => {
        const buffer = reader.result;
        wb.xlsx.load(buffer).then(data => {
-           
-         savefile( wb); // 받아온 엑셀에 수정하기
+        debugger;
+        axios.get('/save').then( response =>{ 
+        debugger;
+         savefile( wb, response.data ); // 받아온 엑셀에 수정하기
  
            wb.xlsx.writeBuffer().then(function (data) {
              const blob = new Blob([data],
@@ -57,13 +56,19 @@ class App extends React.Component {
              anchor.download = 'download.xlsx';
              anchor.click();
              window.URL.revokeObjectURL(url);
-           });
+           }); })
        })
      }
    }
    date = (e) =>{
        const d = e.target.date;
        debugger;
+   }
+   saveText()
+   {
+     debugger;
+     axios.get('/save')
+     .then(response => {this.fileHandler(null,response.data)})
    }
 
 render = () => {
