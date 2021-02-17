@@ -34,15 +34,7 @@ app.use(cors(corsOptions))
 
 
 
-// --> Add this
-if (process.env.NODE_ENV === 'production') {
-  // Serve any static files
-  app.use(express.static(path.resolve(__dirname, 'client/build')));
-// Handle React routing, return all requests to React app
-  app.get('*', function(req, res) {
-    res.sendFile(path.resolve(__dirname, 'client/build', 'index.html'));
-  });
-}
+
 
 var conn = mysql.createConnection({
     host : cleardb.host ,
@@ -98,6 +90,17 @@ function call_make(res)
 app.get('/save/' , (req, res) => {
     call_make(res);
 })
+
+
+// --> Add this
+if (process.env.NODE_ENV === 'production') {
+    // Serve any static files
+    app.use(express.static(path.resolve(__dirname, 'client/build')));
+  // Handle React routing, return all requests to React app
+    app.get('*', function(req, res) {
+      res.sendFile(path.resolve(__dirname, 'client/build', 'index.html'));
+    });
+  }
 
 const PORT = process.env.PORT || 8080
 app.listen(PORT, (req, res) => {
