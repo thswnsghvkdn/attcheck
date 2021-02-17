@@ -5,7 +5,7 @@ import Excel from 'exceljs'
 function savefile( wb , stu) // 서버에서 넘어온 객체를 가지고 엑셀을 수정 
 {
   var res = stu;
-   debugger;
+  console.log(res);
     for(var i = 0 ; i < res.att.length ; i++)
     {
         var _date = res.date[i]; // '2-1' 과 같이 월과 주가 객체로 전달된다.
@@ -42,9 +42,8 @@ class App extends React.Component {
      reader.onload = () => {
        const buffer = reader.result;
        wb.xlsx.load(buffer).then(data => {
-        debugger;
         axios.get('/save').then( response =>{ 
-        debugger;
+        console.log(response);
          savefile( wb, response.data ); // 받아온 엑셀에 수정하기
  
            wb.xlsx.writeBuffer().then(function (data) {
