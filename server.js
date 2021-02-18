@@ -68,20 +68,13 @@ function make_obj(m , w, res)
     })
 }
 
-function attendance(str , date)
-{
-    conn.query(str , function(err, result){
-        if(err) ( err => console.log(err))
-        console.log('result is : ' + result);
-        // var str2 = 'update students set ' + conn.escape('`' + date + '`') + ' = 1 where id = ' + result.id;
-    })
-}
+
 
 
 app.post('/save/' , (req, res) => {
     // m 과 w에 요청 받은 마지막 날짜로 초기화 한다.
     m = req.body.m + 1;
-    w = ( req.body.w / 7 ) * 2 + 1;
+    w = req.body.w;
     console.log(req.body) 
     while(m >= 1) // 요청 받은 마지막 날짜 부터 1월 까지 줄여가며 반복한다
     {
