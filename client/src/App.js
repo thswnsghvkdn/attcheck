@@ -79,8 +79,7 @@ class App extends React.Component {
    }
    attcheck = (e) => {
      debugger;
-     
-     axios.post('/attendance' , {students : this.state.students , m : this.state.month , w : Number(this.state.date / 7)} ).then (response =>{
+     axios.post('/attendance' , {students : this.state.students , m : this.state.month , w : Math.floor(this.state.date / 7)} ).then (response =>{
      })
    }
 
