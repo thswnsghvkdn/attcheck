@@ -113,6 +113,8 @@ app.post('/attendance' , (req , res) => {
         }
 
     })
+
+    res.send('succeed')
 })
 
 if (process.env.NODE_ENV === 'production') {
