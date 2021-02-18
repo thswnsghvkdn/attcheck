@@ -11,7 +11,14 @@ app.use(
         changeOrigin: true,
         })
     );
-    
+app.use(
+    '/attendance',
+    createProxyMiddleware({
+        target: 'http://localhost:8080',
+        secure : false,
+        changeOrigin: true,
+        })
+    );    
 app.use(
     '/api',
     createProxyMiddleware({
