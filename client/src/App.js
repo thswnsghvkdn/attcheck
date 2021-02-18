@@ -30,7 +30,7 @@ class App extends React.Component {
     super(props);
     this.state = {
       month : -1 ,
-      date : -1 ,
+      week : -1 ,
       students : "",
     }
   }
@@ -45,7 +45,7 @@ class App extends React.Component {
     const buffer = reader.result;
     wb.xlsx.load(buffer).then(data => {
     // axios로 서버에 DB에 저장된 출석정보를 요청한다
-    axios.post('/save' , { m : this.state.month , w : this.state.date } ).then( response =>{ 
+    axios.post('/save' , { m : this.state.month , w : this.state.week } ).then( response =>{ 
       console.log(response);
       savefile( wb, response.data ); // 받아온 엑셀에 수정하기
       wb.xlsx.writeBuffer().then(function (data) {
@@ -70,7 +70,7 @@ class App extends React.Component {
        var d = Number(str[8]);
        var date = d * 10 + Number(str[9]);
        this.state.month = month;
-       this.state.date = date;
+       this.state.week = Math.floor( date / 7);
        console.log(this.state);
        debugger;
    }
@@ -79,7 +79,7 @@ class App extends React.Component {
    }
    attcheck = (e) => {
      debugger;
-     axios.post('/attendance' , {students : this.state.students , m : this.state.month , w : Math.floor(this.state.date / 7)} ).then (response =>{
+     axios.post('/attendance' , {students : this.state.students , m : this.state.month , w : this.state.week } ).then (response =>{
      })
    }
 
