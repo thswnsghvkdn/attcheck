@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const path = require('path');
 const app = express();
+const prompt = require('prompt')
+const confirm  = require('confirm')
 const cors = require('cors')  
 const mysql = require('mysql2')
 const month = new Date().getMonth() 
@@ -71,6 +73,7 @@ function make_obj(m , w, res)
 
 
 
+
 app.post('/save/' , (req, res) => {
     // m 과 w에 요청 받은 마지막 날짜로 초기화 한다.
     m = req.body.m + 1;
@@ -88,27 +91,29 @@ app.post('/save/' , (req, res) => {
     }
 })
 
+
+
+// 출석 부분 라우터
 app.post('/attendance' , (req , res) => {
-    console.log(req.body);
     var students = req.body.students;
-    var new_stu = students.split(' ')
-    var date = '`' + req.body.m  + '-' + req.body.w + '`';
-    var dateStr = 'alter table students add ' + date + ' int null';
-    console.log(dateStr);
+    var new_stu = students.split(' ') // 요청 받은 출석명단을 공백을 기준으로 토크나이징 한다.
+    var date = '`' + req.body.m  + '-' + req.body.w + '`'; // 월-주 새로운 컬럼이름
+    var dateStr = 'alter table students add ' + date + ' int null'; // DB에 새로운 컬럼을 추가한다.
     conn.query(dateStr, function(err, results){ // 해당 주차 열 생성
-    
         for( var i in new_stu){
-            var str = 'select id from students where name like' + conn.escape('%' + new_stu[i] +'%')
-            console.log(str);
+            var str = 'select * from students where name like' + conn.escape('%' + new_stu[i] +'%') // 출석인원의 아이디를 탐색할 명령문
             conn.query(str , function(err, results){
                 if(err) ( err => console.log(err))
-                console.log('result id : ' + results[0].id);
-                var str2 = 'update students set '+ date +' = 1 where id = ' + results[0].id;
-                console.log(str2);
-                conn.query(str2 , function(err , results){
-                    if(err) (err => console.log(err))
-                    else console.log("done!")
-                })
+                if(results.length > 0 ) { // 결과가 1이상 일 때
+                    var stuId = 0;
+                    if(results.length > 1) stuId = makePrompt(new_stu[i] , results); // 동명이인의 경우 정확한 아이디를 탐색 
+                    else stuId = results[0].id;
+                    var str2 = 'update students set '+ date +' = 1 where id = ' + stuId; // 탐색된 아이디위치에 출석을 1로 표시할 명령문
+                    conn.query(str2 , function(err , results){
+                        if(err) (err => console.log(err))
+                        else console.log("done!")
+                    })
+                }
             })   
         }
 
@@ -117,10 +122,23 @@ app.post('/attendance' , (req , res) => {
     res.send('succeed')
 })
 
+var lists = [];
+app.post('/load' , (req, res) => {
+    if(lists.length >= 1) res.send(lists);
+    var str = 'select id,name,univ,age from students'
+    console.log(str)
+    conn.query(str , function(err , results) {
+        if(err) throw err;
+        console.log("done")
+        lists = results;
+        res.send(lists);
+    }) 
+})
+
 if (process.env.NODE_ENV === 'production') {
-    // Serve any static files
+    //  정적 파일을 가져 올수 있도록 경로를 설정 하는 미들웨어
     app.use(express.static(path.join(__dirname, 'client/build')));
-  // Handle React routing, return all requests to React app
+  // 정적 파일인 빌드된 클라이언트 html 파일을 사용자에게 보여준다.
     app.get('*', function(req, res) {
       res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
     });

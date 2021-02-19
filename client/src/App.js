@@ -1,9 +1,30 @@
 import React from 'react';
 import axios from 'axios';
 import Excel from 'exceljs'
+import CheckName from './components/CheckName';
 
+
+
+class App extends React.Component {
+  attendanceLists = [];
+  studentsInfo = [];
+  month = -1;
+  week = -1;
+  students = "";
+  constructor(props){
+    super(props);
+    this.state = { // ui에 영향을 주는 부분  setState를 호출하여 리렌더가 필요한 부분을 포함한다.
+      selected : -1,
+      sameName : {
+        name : "",
+        people : [],
+      }
+    }
+  }
+
+  
 // 서버에서 넘어온 객체를 가지고 엑셀을 수정 
-function savefile( wb , stu) 
+savefile( wb , stu) 
 {
   console.log(stu);
   for(var i = 0 ; i < stu.att.length ; i++)
@@ -20,24 +41,61 @@ function savefile( wb , stu)
   }
 }
 
-class App extends React.Component {
-  state = {
-    month : -1, // 해당월 
-    week : -1, // 해당 주차
-    students : "", // 출석 명단
-    wtype : true, // 예배 종류 true = 본 예배
-  }
-  constructor(props){
-    super(props);
-    this.state = {
-      month : -1 ,
-      week : -1 ,
-      students : "",
+makePrompt(name ,results)
+{
+    var body = name + "이름이 중복 되었습니다. 정확한 학생의 번호를 입력해주세요\n";
+    var index = {}
+    var id = -990;
+    debugger;
+    do{
+      if(id === -990) { // 처음시작할때에만 메시지를 작성한다.
+        for(var i = 0 ; i < results.length ; i++)
+        {
+            body += results[i].id  + ' ' + results[i].name + ' ' + results[i].univ + ' ' + results[i].age + '살\n';
+            index[results[i].id] = i;
+        }
+      }
+      var id = Number(prompt(body));
+      if(isNaN(id) || index[id] == null) 
+      {
+        alert("이름 왼쪽에 있는 숫자를 제대로 입력해주세요!")
+      }
+      else break;
+  }while(1);
+
+    var message = results[index[id]].id  + ' ' + results[index[id]].name + ' ' + results[index[id]].univ + ' ' + results[index[id]].age + '살 학생이 맞나요?';
+    while(1)
+    {
+      var flag = window.confirm(message);
+        if(flag === false) var id = Number(prompt(body))
+        else return id;
+        var message = results[index[id]].id  + ' ' + results[index[id]].name + ' ' + results[index[id]].univ + ' ' + results[index[id]].age + '살 학생이 맞나요?';
+    };
+
+    return id;
+}
+
+findStudent(student)
+{
+  for(var i = 0 ; i < this.studentsInfo.length ; i++)
+  {
+    if(this.studentsInfo[i].name.includes(student)) 
+    { 
+      this.state.sameName.name = student;
+      this.state.sameName.people.push(this.studentsInfo[i]); // 동명이인이 있을경우를 위해 동명이인 배열에 출석학생정보를 추가한다.
     }
   }
+  if(this.state.sameName.people === [])
+  {
+    alert(student + "학생이 출석명단에 없습니다 오타에 주의해주세요");
+  }
+  else if(this.state.sameName.people.length > 1)
+   this.attendanceLists.push(this.makePrompt(student, this.state.sameName.people));
+  else this.attendanceLists.push(this.state.sameName.people[0].id);
+}
   // 파일을 업로드하면 해당 파일에 데이터베이스의 명단을 가지고 수정하여 새파일을 다운로드한다.
  fileHandler = (e) => {
-  var filename = this.state.month + "월 " + this.state.week + "주차 대학부 출석";
+  var filename = this.month + "월 " + this.week + "주차 대학부 출석";
   // 업로드한 파일을 저장한다.
   const files = e.target.files[0];
   const wb = new Excel.Workbook();
@@ -48,8 +106,8 @@ class App extends React.Component {
     const buffer = reader.result;
     wb.xlsx.load(buffer).then(data => {
     // axios로 서버에 DB에 저장된 출석정보를 요청한다
-    axios.post('/save' , { m : this.state.month , w : this.state.week } ).then( response =>{ 
-      savefile( wb, response.data ); // 받아온 엑셀에 수정하기
+    axios.post('/save' , { m : this.month , w : this.week } ).then( response =>{ 
+      this.savefile( wb, response.data ); // 받아온 엑셀에 수정하기
       wb.xlsx.writeBuffer().then(function (data) {
             const blob = new Blob([data],
               { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -72,30 +130,62 @@ class App extends React.Component {
        var month = m * 10 + Number(str[6]); // 두 자리수 변환
        var d = Number(str[8]);
        var date = d * 10 + Number(str[9]); // 두 자리수 변환
-       this.state.month = month;
-       this.state.week = Math.floor( date / 7); // 날짜를 주차로 변환한다.
-       console.log(this.state);
-       debugger;
+       this.month = month;
+       this.week = Math.floor( date / 7); // 날짜를 주차로 변환한다.
+       console.log(this);
    }
    // 출석명단을 스테이트에 저장한다.
    attendance = (e) =>{
-    this.state.students = e.target.value;
+    this.students = e.target.value;
    }
    // 서버에 출석명단을 보낸다.
    attcheck = (e) => {
      // 출석명단과 날짜를 객체로 서버에 보낸다.
-     axios.post('/attendance' , {students : this.state.students , m : this.state.month , w : this.state.week } ).then (response =>{
-       console.log(response.data)
-     })
-   }
+    axios.post('/load' ).then(response =>{
+      if(this.studentsInfo.length === 0)
+       this.studentsInfo = response.data;
+      var students = this.students;
+      var new_stu = students.split(' ') // 요청 받은 출석명단을 공백을 기준으로 토크나이징 한다.
+      if(this.studentsInfo === null)
+      {  }
+      else {
+        for( var i in new_stu){
+          this.findStudent(new_stu[i]);
+        } 
+      }
+      console.log(this.attendanceLists);
+    })
 
+    // axios.post('/attendance' , {students : this.students , m : this.month , w : this.week } ).then (response =>{
+    //   console.log("hi")
+    // })
+   }
+   attcheck2 = (e) => { // 리퀘스트를 사람별로 나누어 여러번 보내는 방법
+
+    
+
+   } 
 render = () => {
+  var checkName
+  if(this.state.sameName.people.length <= 1)
+  {
+    checkName = <div></div>;
+  } else {
+    checkName = <CheckName name = {this.state.sameName.name} people = {this.state.sameName.people}
+    chooseName = {function(id) {
+      this.setState({
+        selected : id
+      })
+    }.bind(this)} 
+    ></CheckName>
+  }
   return (
     <div className="App">
       <input type="file" multiple onChange={this.fileHandler}/>{/* 명단을 저장할 엑셀 파일을 올리기위한 태그 */}
       <input type = "date" id = "myDate" multiple onChange={this.date} />{/*출석한 월과 주를 표시할 태그 */}
       <p><textarea cols = "50" rows = "10" multiple onChange = {this.attendance}></textarea></p>{/* 출석명단 */}
       <p><input type = "button" value = "submit" multiple onClick = {this.attcheck} ></input></p>{/* 서버에 보내기위한 submit 버튼 */}
+      {checkName}
     </div>
   );
   }
