@@ -122,16 +122,16 @@ app.post('/attendance' , (req , res) => {
     res.send('succeed')
 })
 
-var lists = [];
+// 학생명단 가져오기
+var lists = []; // DB에서 가져온 명단을 저장하기 위한 배열
 app.post('/load' , (req, res) => {
-    if(lists.length >= 1) res.send(lists);
-    var str = 'select id,name,univ,age from students'
-    console.log(str)
+    if(lists.length >= 1) res.send(lists); // 이미 이전 요청에 의해 명단이 저장되있다면 바로 명단을 응답한다.
+    var str = 'select id,name,univ,age from students' // 모든 학생데이터에서 id name univ age를 가져온다.
     conn.query(str , function(err , results) {
         if(err) throw err;
         console.log("done")
         lists = results;
-        res.send(lists);
+        res.send(lists); // DB 응답결과를 보낸다.
     }) 
 })
 
