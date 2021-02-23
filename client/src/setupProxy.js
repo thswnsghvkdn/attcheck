@@ -26,7 +26,15 @@ app.use(
         secure : false,
         changeOrigin: true,
         })
-    );    
+    );   
+app.use(
+   '/stuInfo',
+    createProxyMiddleware({
+        target: 'http://localhost:8080',
+        secure : false,
+        changeOrigin: true,
+        })
+    );      
 app.use(
     '/api',
     createProxyMiddleware({

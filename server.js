@@ -134,6 +134,20 @@ app.post('/load' , (req, res) => {
         res.send(lists); // DB 응답결과를 보낸다.
     }) 
 })
+// 학생정보를 클라이언트에서 가져와 DB에 저장
+app.post('/stuInfo', (req, res) =>{
+    var lists = req.body.info;
+    console.log(lists);
+    for(var i = 0 ; i < lists.length ; i++)
+    {
+        var str = 'insert into students(id , name ,univ , age)' + ' values ('+ lists[i].id +', \''  +lists[i].name  + '\', \'' + lists[i].univ  + '\',' + lists[i].age   +' )';
+        conn.query(str, function(err, results){
+            if(err) { console.log(err); throw err;}
+            console.log("done");
+        })
+    }
+    console.log('insert into students(id , name ,univ , age)' + ' values ('+ lists[2].id +', \''  +lists[2].name  + '\', \'' + lists[2].univ  + '\',' + lists[2].age   +' )')
+}) 
 
 if (process.env.NODE_ENV === 'production') {
     //  정적 파일을 가져 올수 있도록 경로를 설정 하는 미들웨어

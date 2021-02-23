@@ -1,25 +1,25 @@
 import React from 'react';
 import axios from 'axios';
 import Excel from 'exceljs'
-import CheckName from './components/CheckName';
 
 class App extends React.Component {
-  attendanceLists = [];
-  studentsInfo = [];
-  month = -1;
-  week = -1;
-  students = "";
-  selected = -1;
-  sameName = {
+  attendanceLists = []; // 서버에 보낼 출석한 아이디 배열
+  studentsInfo = []; // 서버에서 가져 올 학생 명단
+  month = -1; // 사용자가 입력 한 월
+  week = -1; // 사용자가 입력 한 주차
+  students = ""; // 출석 학생 명단
+  excelFile = null; // 출석정보를 작성할 파일
+  sameName = { // 동명이인 객체
     name : "",
     people : [],
   }
   constructor(props){
     super(props);
-    //this.fileHandler2 = this.fileHandler2.bind(this)
-    //this.fileDownloader = this.fileDownloader.bind(this)
+    // 함수들에 this 를 bind 시킨다.
+    this.loadData = this.loadData.bind(this);
+    this.fileHandler = this.fileHandler.bind(this);
+    this.fileDownloader = this.fileDownloader.bind(this);
     this.state = { // ui에 영향을 주는 부분  setState를 호출하여 리렌더가 필요한 부분을 포함한다.
-      excelFile : null
     }
   }
 // 서버에서 넘어온 객체를 가지고 엑셀을 수정 
@@ -39,26 +39,7 @@ savefile( wb , stu)
       }
   }
 }
-// 서버에서 넘어온 객체를 가지고 엑셀을 수정 
-loadfile( wb ) 
-{
-  var lists = [];
-  var num = 0;
-  while(1)
-  {
-    var obj = {
-      name : "" , univ : "" , age : 1
-    };
-    obj.name = wb.worksheets[3].getRow(5 + num).getCell(5).value;
-    obj.univ = wb.worksheets[3].getRow(5 + num).getCell(6).value;
-    obj.age =  Number(wb.worksheets[3].getRow(5 + num).getCell(13).value);
-    if(obj.name == undefined || obj.name === "") break;
-    lists.push(obj);
-    num++;
-  }
-  console.log(lists)
-  return lists;
-}
+
 
 // prompt 띄우기 
 makePrompt(name ,results)
@@ -91,6 +72,8 @@ makePrompt(name ,results)
   };
   return id;
 }
+
+
 // 출석 명단을 가지고 학생 명부에서 찾는다.
 findStudent(student)
 {
@@ -112,11 +95,14 @@ findStudent(student)
   }
   else this.attendanceLists.push(this.sameName.people[0].id);
 }
+
+
   // 파일을 업로드하면 해당 파일에 데이터베이스의 명단을 가지고 수정하여 새파일을 다운로드한다.
  fileHandler = (e) => {
   var filename = this.month + "월 " + this.week + "주차 대학부 출석";
   // 업로드한 파일을 저장한다.
   const files = e.target.files[0];
+  this.excelFile = files;
   const wb = new Excel.Workbook();
   const reader = new FileReader()
  
@@ -143,9 +129,9 @@ findStudent(student)
   }
 
   fileDownloader () {
-    var filename =   "월 주차 대학부 출석";
+    var filename = this.month + "월 " + this.week + "주차 대학부 출석";
     // 업로드한 파일을 저장한다.
-    const files = this.state.excelFile;
+    const files = this.excelFile;
     const wb = new Excel.Workbook();
     const reader = new FileReader()
    
@@ -168,40 +154,37 @@ findStudent(student)
       }
   }
 
-// 파일을 업로드하면 해당 파일에 데이터베이스의 명단을 가지고 수정하여 새파일을 다운로드한다.
- fileHandler2 = (e) => {
+// 업로드된 엑셀 파일에서 학생 정보를 가져와 서버에 넘겨 DB에 저장한다.
+loadData = () => {
   // 업로드한 파일을 저장한다.
-  const files = e.target.files[0];
+  const files = this.excelFile;
   const wb = new Excel.Workbook();
-  const reader = new FileReader()
- 
-  reader.readAsArrayBuffer(files)
+  const reader = new FileReader();
+  reader.readAsArrayBuffer(files);
   reader.onload = () => {
     const buffer = reader.result;
     wb.xlsx.load(buffer).then(data => {
-    // axios로 서버에 DB에 저장된 출석정보를 요청한다
-    this.loadfile(wb);
-    this.setState({
-      excelFile : files,
-    })
-    /*
-    axios.post('/save' , { m : this.month , w : this.week } ).then( response =>{ 
-      this.savefile( wb, response.data ); // 받아온 엑셀에 수정하기
-      wb.xlsx.writeBuffer().then(function (data) {
-            const blob = new Blob([data],
-            { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = filename +'.xlsx';
-            anchor.click();
-            window.URL.revokeObjectURL(url);
-          }); 
+        // axios로 서버에 DB에 저장된 출석정보를 요청한다
+        var lists = []; // 학생들의 정보를 저장한다.
+        var num = 0;
+        while(1)
+        {
+          var obj = {
+           id: 1, name : "" , univ : "" , age : 1
+          };
+          obj.id = wb.worksheets[3].getRow(5 + num).getCell(1).value;
+          obj.name = wb.worksheets[3].getRow(5 + num).getCell(5).value;
+          obj.univ = wb.worksheets[3].getRow(5 + num).getCell(6).value;
+          obj.age = Number(wb.worksheets[3].getRow(5 + num).getCell(13).value);
+          if(obj.name == undefined || obj.name === "") break;
+          lists.push(obj);
+          num++;
+        }
+        axios.post('/stuInfo' , { info : lists } ).then( response =>{ 
+          console.log("done");
         })
-    */
-      })
+    })
     }
-    debugger;
   }
   // 날짜를 스테이트에 저장
    date = (e) =>{
@@ -239,6 +222,7 @@ findStudent(student)
   }
 
 render = () => {
+  /*
   var checkName
   if(this.sameName.people.length <= 1)
   {
@@ -252,18 +236,16 @@ render = () => {
     }.bind(this)} 
     ></CheckName>
   }
+  */
   return (
     <div className="App">
-      <label for="file">출석부 엑셀에 작성하기</label>
-      <input type="file" multiple onChange={this.fileHandler}/>{/* 명단을 저장할 엑셀 파일을 올리기위한 태그 */}
-      <label for="file">학생 명단 업로드</label>
-      <input type="file" multiple onChange={this.fileHandler2} />{/* 명단을 저장할 엑셀 파일을 올리기위한 태그 */}
+      <p><textarea cols = "50" rows = "10" multiple onChange = {function(e){ this.students = e.target.value}.bind(this)}></textarea></p>{/* 출석명단 */}
+      <input type = "button" value = "submit" multiple onClick = {this.attcheck} ></input>{/* 서버에 보내기위한 submit 버튼 */}
+      <input type = "button" value = "save" multiple onClick = {this.fileDownloader} ></input>{/* 서버에 보내기위한 submit 버튼 */}
+      <input type = "button" value = "load" multiple onClick = {this.loadData} ></input>{/* 서버에 보내기위한 submit 버튼 */}
       <input type = "date" id = "myDate" multiple onChange={this.date} />{/*출석한 월과 주를 표시할 태그 */}
-      <p><textarea cols = "50" rows = "10" multiple onChange = {this.attendance}></textarea></p>{/* 출석명단 */}
-      <p><input type = "button" value = "submit" multiple onClick = {this.attcheck} ></input></p>{/* 서버에 보내기위한 submit 버튼 */}
-      <p><input type = "button" value = "save" multiple onClick = {this.fileDownloader} ></input></p>{/* 서버에 보내기위한 submit 버튼 */}
-
-      {checkName}
+      <p>학생 명단 업로드</p>
+      <input type="file" multiple onChange={function(e) {this.excelFile = e.target.files[0] }.bind(this)} />{/* 명단을 저장할 엑셀 파일을 올리기위한 태그 */}
     </div>
   );
   }
