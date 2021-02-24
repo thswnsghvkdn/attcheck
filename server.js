@@ -56,6 +56,7 @@ function make_obj(m , w, res)
 {
     var _date =   m + '-' + w ; // 월 - 주차 
     var str = 'select `'+ _date + '` from students' // 해당 컬럼 전체를 가져오기 위한 명령문
+    console.log(str);
     conn.query(str ,function(err, result){
         if(result) {
             var t = [] // 학생들의 출석 여부를 저장할 배열
@@ -64,9 +65,9 @@ function make_obj(m , w, res)
             }
             studata.att.push(t) // 출석여부를 저장한 배열을 객체에 att 에 push 한다.
             studata.date.push(_date) // 해당 날짜를 push한다.
-            if(m == 1 && w == 0) 
-                res.send(studata) // 1월 0주차일 경우 모든 출석 정보가 객체에 저장되었으므로 클라이언트에 응답한다.
         }
+        if(m == 1 && w == 0) 
+          res.send(studata) // 1월 0주차일 경우 모든 출석 정보가 객체에 저장되었으므로 클라이언트에 응답한다.
     })
 }
 
@@ -74,11 +75,10 @@ function make_obj(m , w, res)
 
 
 
-app.post('/save/' , (req, res) => {
+app.post('/saveDB/' , (req, res) => {
     // m 과 w에 요청 받은 마지막 날짜로 초기화 한다.
     m = req.body.m + 1;
     w = req.body.w;
-    console.log(req.body) 
     while(m >= 1) // 요청 받은 마지막 날짜 부터 1월 까지 줄여가며 반복한다
     {
         make_obj(m , w, res) // str을 만들기위한 주차와 월을 변경해가며 함수를 호출한다.
@@ -95,30 +95,18 @@ app.post('/save/' , (req, res) => {
 
 // 출석 부분 라우터
 app.post('/attendance' , (req , res) => {
-    var students = req.body.students;
-    var new_stu = students.split(' ') // 요청 받은 출석명단을 공백을 기준으로 토크나이징 한다.
+    var students = req.body.lists;
     var date = '`' + req.body.m  + '-' + req.body.w + '`'; // 월-주 새로운 컬럼이름
     var dateStr = 'alter table students add ' + date + ' int null'; // DB에 새로운 컬럼을 추가한다.
     conn.query(dateStr, function(err, results){ // 해당 주차 열 생성
-        for( var i in new_stu){
-            var str = 'select * from students where name like' + conn.escape('%' + new_stu[i] +'%') // 출석인원의 아이디를 탐색할 명령문
+        for( var i in students){
+            var str = 'update students set '+date+ ' = 1 where id = ' + students[i];
+            console.log(str);
             conn.query(str , function(err, results){
                 if(err) ( err => console.log(err))
-                if(results.length > 0 ) { // 결과가 1이상 일 때
-                    var stuId = 0;
-                    if(results.length > 1) stuId = makePrompt(new_stu[i] , results); // 동명이인의 경우 정확한 아이디를 탐색 
-                    else stuId = results[0].id;
-                    var str2 = 'update students set '+ date +' = 1 where id = ' + stuId; // 탐색된 아이디위치에 출석을 1로 표시할 명령문
-                    conn.query(str2 , function(err , results){
-                        if(err) (err => console.log(err))
-                        else console.log("done!")
-                    })
-                }
             })   
         }
-
     })
-
     res.send('succeed')
 })
 
@@ -146,7 +134,6 @@ app.post('/stuInfo', (req, res) =>{
             console.log("done");
         })
     }
-    console.log('insert into students(id , name ,univ , age)' + ' values ('+ lists[2].id +', \''  +lists[2].name  + '\', \'' + lists[2].univ  + '\',' + lists[2].age   +' )')
 }) 
 
 if (process.env.NODE_ENV === 'production') {

@@ -3,12 +3,12 @@ import axios from 'axios';
 import Excel from 'exceljs'
 
 class App extends React.Component {
-  attendanceLists = []; // 서버에 보낼 출석한 아이디 배열
   studentsInfo = []; // 서버에서 가져 올 학생 명단
   month = -1; // 사용자가 입력 한 월
   week = -1; // 사용자가 입력 한 주차
   students = ""; // 출석 학생 명단
   excelFile = null; // 출석정보를 작성할 파일
+  attendanceLists = []; // 서버에 보낼 출석한 아이디 배열
   sameName = { // 동명이인 객체
     name : "",
     people : [],
@@ -98,11 +98,10 @@ findStudent(student)
 
 
   // 파일을 업로드하면 해당 파일에 데이터베이스의 명단을 가지고 수정하여 새파일을 다운로드한다.
- fileHandler = (e) => {
+ fileHandler = () => {
   var filename = this.month + "월 " + this.week + "주차 대학부 출석";
   // 업로드한 파일을 저장한다.
-  const files = e.target.files[0];
-  this.excelFile = files;
+  const files = this.excelFile;
   const wb = new Excel.Workbook();
   const reader = new FileReader()
  
@@ -111,7 +110,7 @@ findStudent(student)
     const buffer = reader.result;
     wb.xlsx.load(buffer).then(data => {
     // axios로 서버에 DB에 저장된 출석정보를 요청한다
-    axios.post('/save' , { m : this.month , w : this.week } ).then( response =>{ 
+    axios.post('/saveDB' , { m : this.month , w : this.week } ).then( response =>{ 
       this.savefile( wb, response.data ); // 받아온 엑셀에 수정하기
       wb.xlsx.writeBuffer().then(function (data) {
             const blob = new Blob([data],
@@ -122,6 +121,7 @@ findStudent(student)
             anchor.download = filename +'.xlsx';
             anchor.click();
             window.URL.revokeObjectURL(url);
+            console.log("donwn")
           }); 
         })
       })
@@ -199,25 +199,31 @@ loadData = () => {
        console.log(this);
    }
    // 출석명단을 스테이트에 저장한다.
-   attendance = (e) =>{
-    this.students = e.target.value;
-   }
+   attendance = () =>{
+    this.attendanceLists = [];
+    var students = this.students;
+    var new_stu = students.split(' ') // 요청 받은 출석명단을 공백을 기준으로 토크나이징 한다.
+    if(this.studentsInfo === null)
+    {  }
+    else {
+      for(var i in new_stu){
+        this.findStudent(new_stu[i]);
+      } 
+    }
+    console.log(this.attendanceLists);
+    if(this.month === -1) alert("날짜를 체크 해주세요");
+    else {
+       axios.post('/attendance' , {lists : this.attendanceLists , m : this.month , w : this.week }).then(response =>{
+        console.log("done");
+       })
+    }
+  }
    // 서버에 출석명단을 보낸다.
-   attcheck = (e) => {
+   loadStudents = (e) => {
      // 출석명단과 날짜를 객체로 서버에 보낸다.
     axios.post('/load' ).then(response =>{
       if(this.studentsInfo.length === 0)
        this.studentsInfo = response.data;
-      var students = this.students;
-      var new_stu = students.split(' ') // 요청 받은 출석명단을 공백을 기준으로 토크나이징 한다.
-      if(this.studentsInfo === null)
-      {  }
-      else {
-        for(var i in new_stu){
-          this.findStudent(new_stu[i]);
-        } 
-      }
-      console.log(this.attendanceLists);
     })
   }
 
@@ -240,9 +246,10 @@ render = () => {
   return (
     <div className="App">
       <p><textarea cols = "50" rows = "10" multiple onChange = {function(e){ this.students = e.target.value}.bind(this)}></textarea></p>{/* 출석명단 */}
-      <input type = "button" value = "submit" multiple onClick = {this.attcheck} ></input>{/* 서버에 보내기위한 submit 버튼 */}
-      <input type = "button" value = "save" multiple onClick = {this.fileDownloader} ></input>{/* 서버에 보내기위한 submit 버튼 */}
-      <input type = "button" value = "load" multiple onClick = {this.loadData} ></input>{/* 서버에 보내기위한 submit 버튼 */}
+      <input type = "button" value = "출석" multiple onClick = {this.attendance} ></input>{/* 서버에 보내기위한 submit 버튼 */}
+      <input type = "button" value = "save" multiple onClick = {this.fileHandler} ></input>{/* 서버에 보내기위한 submit 버튼 */}
+      <input type = "button" value = "load" multiple onClick = {this.loadStudents} ></input>{/* 서버에 보내기위한 submit 버튼 */}
+      {/*<input type = "button" value = "load" multiple onClick = {this.loadData} ></input>{/* 서버에 보내기위한 submit 버튼 */}
       <input type = "date" id = "myDate" multiple onChange={this.date} />{/*출석한 월과 주를 표시할 태그 */}
       <p>학생 명단 업로드</p>
       <input type="file" multiple onChange={function(e) {this.excelFile = e.target.files[0] }.bind(this)} />{/* 명단을 저장할 엑셀 파일을 올리기위한 태그 */}
