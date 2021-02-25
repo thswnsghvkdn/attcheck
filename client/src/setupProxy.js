@@ -1,10 +1,17 @@
-
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
     
 app.use(
-    '/saveDB',
+    '/api',
+    createProxyMiddleware({
+        target: 'http://localhost:8080',
+        secure : false,
+        changeOrigin: true,
+        })
+    );    
+app.use(
+    '/reqDB',
     createProxyMiddleware({
         target: 'http://localhost:8080',
         secure : false,
@@ -34,7 +41,8 @@ app.use(
         secure : false,
         changeOrigin: true,
         })
-    );      
+    );     
+/*     
 app.use(
     '/api',
     createProxyMiddleware({
@@ -43,4 +51,5 @@ app.use(
         changeOrigin: true,
         })
     );
+*/
 };

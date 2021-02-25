@@ -1,19 +1,20 @@
 const express = require('express');
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 const path = require('path');
 const app = express();
-const prompt = require('prompt')
-const confirm  = require('confirm')
-const cors = require('cors')  
-const mysql = require('mysql2')
-const month = new Date().getMonth() 
-const week = parseInt(new Date().getDate() / 7)
-const { cleardb }  = require('./config/key')
+const cors = require('cors');
+const mysql = require('mysql2');
+const cookieParser = require('cookie-parser');
+const { cleardb }  = require('./config/key');
+const jwt = require('jsonwebtoken');
+const { auth } = require('./middleware/auth');
+const { UV_FS_O_FILEMAP } = require('constants');
 var studata = {att : [] , date : []} // 클라이언트에 보낼 학생 출석정보 객체 att는 출석여부를 저장하고 date는 해당 날짜를 저장한다.
 
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); 
+app.use(cookieParser())
 
 // 코스 설정 
 // 화이트 리스트 설정 로컬의 클라이언트 , 백엔드와 헤로쿠 url을 등록해놓는다.
@@ -70,12 +71,51 @@ function make_obj(m , w, res)
           res.send(studata) // 1월 0주차일 경우 모든 출석 정보가 객체에 저장되었으므로 클라이언트에 응답한다.
     })
 }
+// 아이디와 비밀번호가 일치하면 토큰을 생성한다.
+app.post('/api/users/login', (req, res) =>{
+    console.log(req.body);
+    var name =  req.body.name;
+    var password = req.body.password;
+    var str = 'select * from register where name = \'' + name + '\' && password = \'' + password + '\'';
+    conn.query(str , function(err, result) {
+        if(result){
+            var token = jwt.sign(name, 'secrett');
+            var str = 'update register set token = \'' + token + '\' where name = \'' + name + '\'';
+            console.log(str);
+            conn.query(str, function(err, result){
+                if(err) throw err;
+                res.cookie("hooonn", token).status(200).json({login : "true"});
+            })
+        }
+        else res.send("s");
+    })
+})
+// 토큰을 이용하여 아이디를 복호화하고 해당 아이디와 토큰이 DB에 저장되어 있으면 인증처리를 한다.
+app.get('/api/users/auth' , (req, res) =>{
+    var token = req.cookies.x_auth;
+    JsonWebTokenError.verify(token ,'hooonn' , function(err, decoded){
+        var str = 'select * from register where name = \'' + decoded + '\' && token = \'' + token + '\'';
+        conn.query(str , function(err , result){
+            if(result)
+            {
+                res.status(200).send("인증성공");
+            }
+            res.status(400).send("인증실패");
+        })
+    })
+})
+// DB에서 토큰을 삭제하여 인증처리를 불가하도록 한다.
+app.get('/api/users/logout' , (req, res) => {
+    var str = 'update register set token = null where name = \'' + req.body.name +'\'';
+    conn.query(str , function(err, result) {
+        if(err) throw err;
+        res.send("로그아웃 성공");
+    })
+})
 
 
-
-
-
-app.post('/saveDB/' , (req, res) => {
+// DB에서 학생들의 출석 정보를 가져온다.
+app.post('/api/students/reqDB' , (req, res) => {
     // m 과 w에 요청 받은 마지막 날짜로 초기화 한다.
     m = req.body.m + 1;
     w = req.body.w;
@@ -91,15 +131,13 @@ app.post('/saveDB/' , (req, res) => {
     }
 })
 
-
-
 // 출석 부분 라우터
-app.post('/attendance' , (req , res) => {
+app.post('/api/students/attendance' , (req , res) => {
     var students = req.body.lists;
     var date = '`' + req.body.m  + '-' + req.body.w + '`'; // 월-주 새로운 컬럼이름
     var dateStr = 'alter table students add ' + date + ' int null'; // DB에 새로운 컬럼을 추가한다.
     conn.query(dateStr, function(err, results){ // 해당 주차 열 생성
-        for( var i in students){
+        for( var i in students){ // 요청으로 온 학생 아이디 위치에 출석을 저장한다.
             var str = 'update students set '+date+ ' = 1 where id = ' + students[i];
             console.log(str);
             conn.query(str , function(err, results){
@@ -112,7 +150,7 @@ app.post('/attendance' , (req , res) => {
 
 // 학생명단 가져오기
 var lists = []; // DB에서 가져온 명단을 저장하기 위한 배열
-app.post('/load' , (req, res) => {
+app.post('/api/students/load' , (req, res) => {
     if(lists.length >= 1) res.send(lists); // 이미 이전 요청에 의해 명단이 저장되있다면 바로 명단을 응답한다.
     var str = 'select id,name,univ,age from students' // 모든 학생데이터에서 id name univ age를 가져온다.
     conn.query(str , function(err , results) {
@@ -123,7 +161,7 @@ app.post('/load' , (req, res) => {
     }) 
 })
 // 학생정보를 클라이언트에서 가져와 DB에 저장
-app.post('/stuInfo', (req, res) =>{
+app.post('/api/students/stuInfo', (req, res) =>{
     var lists = req.body.info;
     console.log(lists);
     for(var i = 0 ; i < lists.length ; i++)
