@@ -5,12 +5,25 @@ import { Redirect, useHistory } from 'react-router-dom'
 class LoginPage extends React.Component{
     userID;
     password;
+    constructor(props){
+        super(props);
+        axios.get('/api/users/auth').then(response =>{
+            if(response.data.login === "true")
+            {
+                this.props.history.push("/main"); // 로그인이 성공할 경우 출석페이지로 이동시킨다.
+            }
+        })
+    }
 
     onSubmitHandler = (event) =>{
         event.preventDefault();
+        // 서버에 아이디와 비밀번호를 보낸다.
         axios.post('/api/users/login', {name : this.userID , password : this.password} ).then(res =>{
-            if(res.login === "true") console.log("성공");
-            this.props.history.push("/main");
+            if(res.data.login === "true") {
+                console.log("성공");
+                this.props.history.push("/main"); // 로그인이 성공할 경우 출석페이지로 이동시킨다.
+            }
+            else alert("로그인 실패");
         })
     }
 

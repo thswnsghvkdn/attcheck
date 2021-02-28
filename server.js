@@ -57,9 +57,8 @@ function make_obj(m , w, res)
 {
     var _date =   m + '-' + w ; // 월 - 주차 
     var str = 'select `'+ _date + '` from students' // 해당 컬럼 전체를 가져오기 위한 명령문
-    console.log(str);
     conn.query(str ,function(err, result){
-        if(result) {
+        if(result.length  > 0) {
             var t = [] // 학생들의 출석 여부를 저장할 배열
             for(var j = 0 ; j < result.length ; j++) { // json 객체에서 출석정보만을 가져온다.
                 t.push(result[j][_date])
@@ -73,43 +72,50 @@ function make_obj(m , w, res)
 }
 // 아이디와 비밀번호가 일치하면 토큰을 생성한다.
 app.post('/api/users/login', (req, res) =>{
-    console.log(req.body);
     var name =  req.body.name;
     var password = req.body.password;
+    // 아이디와 비밀번호로 DB에 유저를 확인한다.
     var str = 'select * from register where name = \'' + name + '\' && password = \'' + password + '\'';
     conn.query(str , function(err, result) {
-        if(result){
+        if(result.length > 0){ // 유저가 확인되었다면 토큰을 생성한다.
             var token = jwt.sign(name, 'secrett');
             var str = 'update register set token = \'' + token + '\' where name = \'' + name + '\'';
-            console.log(str);
             conn.query(str, function(err, result){
                 if(err) throw err;
-                res.cookie("hooonn", token).status(200).json({login : "true"});
+                res.cookie('hooonn', token).status(200).json({login : "true"});
             })
         }
-        else res.send("s");
+        else res.json({login : "false"});
     })
 })
+
 // 토큰을 이용하여 아이디를 복호화하고 해당 아이디와 토큰이 DB에 저장되어 있으면 인증처리를 한다.
 app.get('/api/users/auth' , (req, res) =>{
-    var token = req.cookies.x_auth;
-    JsonWebTokenError.verify(token ,'hooonn' , function(err, decoded){
+    var token = req.cookies.hooonn;
+    jwt.verify(token ,'secrett' , function(err, decoded){
         var str = 'select * from register where name = \'' + decoded + '\' && token = \'' + token + '\'';
+        console.log(str);
         conn.query(str , function(err , result){
-            if(result)
+            if(result !== null && result.length > 0)
             {
-                res.status(200).send("인증성공");
+                console.log(result);
+                res.json({login : "true"});
             }
-            res.status(400).send("인증실패");
+            else res.json({login : "false"});
         })
     })
 })
+
 // DB에서 토큰을 삭제하여 인증처리를 불가하도록 한다.
 app.get('/api/users/logout' , (req, res) => {
-    var str = 'update register set token = null where name = \'' + req.body.name +'\'';
-    conn.query(str , function(err, result) {
-        if(err) throw err;
-        res.send("로그아웃 성공");
+    var token = req.cookies.hooonn;
+    jwt.verify(token ,'secrett' , function(err, decoded){
+        var str = 'update register set token = null where name = \'' + decoded +'\'';
+        console.log(str);
+        conn.query(str , function(err, result) {
+            if(err) throw err;
+            res.send("로그아웃 성공");
+        })
     })
 })
 
@@ -139,7 +145,6 @@ app.post('/api/students/attendance' , (req , res) => {
     conn.query(dateStr, function(err, results){ // 해당 주차 열 생성
         for( var i in students){ // 요청으로 온 학생 아이디 위치에 출석을 저장한다.
             var str = 'update students set '+date+ ' = 1 where id = ' + students[i];
-            console.log(str);
             conn.query(str , function(err, results){
                 if(err) ( err => console.log(err))
             })   
@@ -155,7 +160,6 @@ app.post('/api/students/load' , (req, res) => {
     var str = 'select id,name,univ,age from students' // 모든 학생데이터에서 id name univ age를 가져온다.
     conn.query(str , function(err , results) {
         if(err) throw err;
-        console.log("done")
         lists = results;
         res.send(lists); // DB 응답결과를 보낸다.
     }) 
@@ -163,13 +167,11 @@ app.post('/api/students/load' , (req, res) => {
 // 학생정보를 클라이언트에서 가져와 DB에 저장
 app.post('/api/students/stuInfo', (req, res) =>{
     var lists = req.body.info;
-    console.log(lists);
     for(var i = 0 ; i < lists.length ; i++)
     {
         var str = 'insert into students(id , name ,univ , age)' + ' values ('+ lists[i].id +', \''  +lists[i].name  + '\', \'' + lists[i].univ  + '\',' + lists[i].age   +' )';
         conn.query(str, function(err, results){
             if(err) { console.log(err); throw err;}
-            console.log("done");
         })
     }
 }) 

@@ -15,15 +15,14 @@ render = () => {
     <Router>
       <div>
         <Switch>
-            <Route exact path = "/main" component = {App} />
-            <Route exact path = "/" component = {LoginPage} />
+            <Route exact path = "/main" component = {App} /> {/*기존의 출석 화면*/}
+            <Route exact path = "/" component = {LoginPage} />{/*로그인 화면*/}
         </Switch>
       </div>
     </Router>
   )};
 }
 
-//import { Redirect } from 'react-router-dom'
-//!this.isLogin && <Redirect to="/"/>
+
 
 export default WebApp;
