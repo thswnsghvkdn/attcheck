@@ -275,7 +275,7 @@ loadData = () => {
           var num = 0;
           // 내부반복문에서는 해당 주차에 출석정보를 가져온다
           while(1) {
-          lists = [];
+          var lists = [];
           var obj = {
             id: 1, name : ""  , att : 1
             };
