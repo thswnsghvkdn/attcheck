@@ -23,10 +23,11 @@ class App extends React.Component {
         console.log(response.data)  
           this.props.history.push("/"); // 로그인이 성공할 경우 출석페이지로 이동시킨다.
       }
-  })
+    })
     // 함수들에 this 를 bind 시킨다.
     this.loadData = this.loadData.bind(this);
     this.fileWrite = this.fileWrite.bind(this);
+    this.synchronize = this.synchronize.bind(this);
     this.state = { // ui에 영향을 주는 부분  setState를 호출하여 리렌더가 필요한 부분을 포함한다.
     }
   }
@@ -199,7 +200,6 @@ loadData = () => {
        var date = d * 10 + Number(str[9]); // 두 자리수 변환
        this.month = month;
        this.week = ( Math.ceil( date / 7) - 1 ) * 2; // 날짜를 주차로 변환한다.
-       debugger;
        console.log(this);
    }
    // 출석명단을 스테이트에 저장한다.
@@ -242,66 +242,68 @@ loadData = () => {
 
   // 파일에 있는 데이터를 가져와 DB에 다시 저장 수정역할 
   synchronize() {
-  // 업로드한 파일을 저장한다.
-  if(this.excelFile === null)
-  {
-    alert("수정할 엑셀 파일을 첨부 해 주세요!");
-    return;
-  }
-  if(this.month === -1) 
-  {
-    alert("날짜를 체크 해주세요");
-    return;
-  }
-  var message = this.month +"월 " + (this.week + 1 ) + "주차 까지 출석정보가 DB로 동기화 됩니다.";
-  if(window.confirm(message) === false){
-    alert("동기화 취소")
-    return;
-  }
-
-  const files = this.excelFile;
-  const wb = new Excel.Workbook();
-  const reader = new FileReader();
-  reader.readAsArrayBuffer(files);
-  reader.onload = () => {
-    const buffer = reader.result;
-    wb.xlsx.load(buffer).then(data => {
-        // axios로 서버에 DB에 저장된 출석정보를 요청한다
-        var sync = []; // 학생들의 정보를 저장한다.
-        var m = 1;
-        var w = 0;
-        while(1)
-        {
-          var num = 0;
-          // 내부반복문에서는 해당 주차에 출석정보를 가져온다
-          while(1) {
-          var lists = [];
-          var obj = {
-            id: 1, name : ""  , att : 1
-            };
-          obj.id = wb.worksheets[m+2].getRow(5 + num).getCell(1).value;
-          obj.name = wb.worksheets[m+2].getRow(5 + num).getCell(5).value;
-          obj.att = Number(wb.worksheets[m+2].getRow(5 + num).getCell(16 + w).value);
-          if(obj.name == undefined || obj.name === "") break;
-          lists.push(obj);
-          num++;
-          }
-
-          if(this.month == m && this.week == w)
-            break;
-          w++;
-          if(w > 9)
-          {
-            m++;
-            w=0;
-          }
-          sync.push(lists);
-        }
-        axios.post('api/students/sync' , { info : sync } ).then( response =>{ 
-          console.log("done");
-        })
-    })
+    // 업로드한 파일을 저장한다.
+    if(this.excelFile === null)
+    {
+      alert("수정할 엑셀 파일을 첨부 해 주세요!");
+      return;
     }
+    if(this.month === -1) 
+    {
+      alert("날짜를 체크 해주세요");
+      return;
+    }
+    var message = this.month + "월 " + (this.week / 2 + 1 ) + "주차 까지 출석정보가 DB로 동기화 됩니다.";
+    if(window.confirm(message) === false){
+      alert("동기화 취소")
+      return;
+    }
+
+    const files = this.excelFile;
+    const wb = new Excel.Workbook(); 
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(files);
+    reader.onload = () => {
+      const buffer = reader.result;
+      wb.xlsx.load(buffer).then(data => {
+          // axios로 서버에 DB에 저장된 출석정보를 요청한다
+          var sync = []; // 학생들의 정보를 저장한다.
+          var m = 1;
+          var w = 0;
+          while(1)
+          {
+            var num = 0;
+            var lists = [];
+            // 내부반복문에서는 해당 주차에 출석정보를 가져온다
+            while(1) {
+              var obj = {
+                id: 1, name : ""  , att : 1 , date : ""
+                };
+              obj.id = wb.worksheets[m+1].getRow(5 + num).getCell(1).value;
+              obj.name = wb.worksheets[m+1].getRow(5 + num).getCell(5).value;
+              obj.att = Number(wb.worksheets[m+1].getRow(5 + num).getCell(16 + w).value);
+              obj.date ='`' + m + '-' + w + '`';
+              if(obj.name == undefined || obj.name === "") break;
+              lists.push(obj);
+              num++;
+            }
+            if(this.month === m && (this.week + 2) === w)
+              break;
+            
+            w++;
+            if(w > 9)
+            {
+              m++;
+              w=0;
+            }
+            sync.push(lists);
+          }
+          
+          axios.post('api/students/sync' , { info : sync } ).then( response =>{ 
+            console.log("done");
+          })
+      })
+      }
   }
 
 
@@ -312,10 +314,12 @@ render = () => {
       <p><textarea cols = "50" rows = "10" multiple onChange = {function(e){ this.students = e.target.value}.bind(this)}></textarea></p>{/* 출석명단 */}
       <input type = "button" value = "출석명단 저장" multiple onClick = {this.attendance} ></input>{/* 출석 명단을 DB에 저장 */}
       <input type = "button" value = "엑셀파일 수정" multiple onClick = {this.fileWrite} ></input>{/* 서버에서 학생데이터를 가져와 파일 수정 */}
+      <input type = "button" value = "엑셀파일 동기화" multiple onClick = {this.synchronize} ></input>{/* 서버에서 학생데이터를 가져와 파일 수정 */}
+    
       {/*<input type = "button" value = "load" multiple onClick = {this.loadData} ></input>{/* 서버에 보내기위한 submit 버튼 */}
       <input type = "date" id = "myDate" multiple onChange={this.date} />{/*출석한 월과 주를 표시할 태그 */}
       <input type='radio'name='serve' value = "1,2부"  checked = {true} onChange = {this.handleOptionChange}/>1,2부
-       <input type='radio'name='serve' value = "대학부" onChange = {this.handleOptionChange}/>대학부
+      <input type='radio'name='serve' value = "대학부" onChange = {this.handleOptionChange}/>대학부
       <p>학생 명단 업로드</p>
       <input type="file" multiple onChange={function(e) {this.excelFile = e.target.files[0] }.bind(this)} />{/* 명단을 저장할 엑셀 파일을 올리기위한 태그 */}
       <p><a href = '/' onClick = {function(e) {e.preventDefault(); axios.get('/api/users/logout').then(res => {this.props.history.push('/')})}.bind(this)} >로그아웃</a></p>

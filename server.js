@@ -119,7 +119,30 @@ app.get('/api/users/logout' , (req, res) => {
     })
 })
 
+app.post('/api/students/sync' , (req, res) =>{
+    var sync = req.body.info;
+    console.log(sync.length)
+    console.log(sync[4].length)
 
+    for(var i = 0 ; i < sync.length ; i++) // 받아온 주차 만큼 반복
+    {
+        for(var j = 0 ; j < sync[i].length ; j++){
+            var str = 'update students set ' + sync[i][j].date + '= ' + sync[i][j].att + " where id = " + sync[i][j].id;
+            conn.query(str, (err, result)=>{
+                if(err) throw err;
+                if(i === 5 && j === 142)
+                {
+                    res.send("done");
+                    console.log(str + "done");
+
+                }
+                if(i >= 5 && j >= 142) {
+                    console.log(str);
+                } 
+            });
+        }
+    }
+})
 // DB에서 학생들의 출석 정보를 가져온다.
 app.post('/api/students/reqDB' , (req, res) => {
     // m 과 w에 요청 받은 마지막 날짜로 초기화 한다.
